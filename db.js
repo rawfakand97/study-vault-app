@@ -10,6 +10,13 @@ const pool = new Pool({
     : false
 });
 
+function detectType(link) {
+  const host = new URL(link).hostname.replace(/^www\./, '');
+  if (/(^|\.)youtube\.com$|^youtu\.be$/.test(host)) return 'yt';
+  if (/^(drive|docs)\.google\.com$/.test(host)) return 'drive';
+  return 'link';
+}
+
 // Runs on every boot. Everything here is idempotent, so you never need a shell.
 async function initDb() {
   await pool.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
@@ -31,6 +38,24 @@ async function initDb() {
        AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.course_id = courses.id)`,
     [courses.map(c => c.code)]
   );
+
+  // One-time import of starter resources (runs once, so deleted ones never come back)
+  const seeded = await pool.query(`SELECT 1 FROM app_meta WHERE key='resources_seeded'`);
+  if (seeded.rows.length === 0) {
+    const file = path.join(__dirname, 'seed-resources.json');
+    const items = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+    for (const r of items) {
+      await pool.query(
+        `INSERT INTO resources (course_id, title, link, type, status)
+         SELECT c.id, $2, $3, $4, 'approved' FROM courses c
+         WHERE c.code = $1
+           AND NOT EXISTS (SELECT 1 FROM resources x WHERE x.course_id = c.id AND x.link = $3)`,
+        [r.course_code, r.title, r.link, detectType(r.link)]
+      );
+    }
+    await pool.query(`INSERT INTO app_meta (key, value) VALUES ('resources_seeded','1')`);
+    console.log(`Seeded ${items.length} starter resources`);
+  }
 
   // Create the first Chairman from env vars if none exists
   const { rows } = await pool.query(`SELECT 1 FROM users WHERE role='chairman' LIMIT 1`);
