@@ -51,3 +51,8 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_comments_resource ON comments(resource_id);
+
+CREATE TABLE IF NOT EXISTS app_meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
