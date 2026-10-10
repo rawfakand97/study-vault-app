@@ -1,0 +1,27 @@
+databases:
+  - name: study-vault-db
+    plan: free
+    databaseName: study_vault
+    user: study_vault
+
+services:
+  - type: web
+    name: study-vault
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: study-vault-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CHAIRMAN_NAME
+        sync: false
+      - key: CHAIRMAN_EMAIL
+        sync: false
+      - key: CHAIRMAN_PASSWORD
+        sync: false

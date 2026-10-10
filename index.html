@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Study Vault - BSc ICT</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ AUTH SCREEN ============ -->
+  <div id="auth-page" class="auth-wrap">
+    <div class="auth-card">
+      <h1>📚 Study Vault</h1>
+      <p class="auth-sub">BSc in ICT · MBSTU</p>
+
+      <div class="auth-tabs">
+        <button id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+        <button id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">Student Sign Up</button>
+      </div>
+
+      <!-- Login -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" required placeholder="you@example.com">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+        <p id="loginError" class="form-error" style="display:none;"></p>
+        <button type="submit" class="btn-primary btn-full">Log In</button>
+      </form>
+
+      <!-- Register (students only) -->
+      <form id="registerForm" onsubmit="handleRegister(event)" style="display:none;">
+        <label for="regName">Full Name</label>
+        <input type="text" id="regName" required placeholder="Your name">
+        <label for="regEmail">Email</label>
+        <input type="email" id="regEmail" required placeholder="you@example.com">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" required placeholder="At least 6 characters">
+        <p id="registerError" class="form-error" style="display:none;"></p>
+        <button type="submit" class="btn-primary btn-full">Create Student Account</button>
+      </form>
+
+      <p class="auth-note">Teacher and Chairman accounts are created by the department Chairman.</p>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="app" class="container" style="display:none;">
+    <header>
+      <h1>📚 Study Vault</h1>
+      <p>BSc in Information & Communication Technology (MBSTU 2022-23)</p>
+
+      <div class="user-bar">
+        <span id="userLabel"></span>
+        <button class="link-btn" onclick="logout()">Log Out</button>
+      </div>
+
+      <div id="roleNav" class="role-nav"></div>
+
+      <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search courses (e.g. C Programming, ICT 1103)..." onkeyup="searchCourses()">
+        <button id="searchBtn" onclick="searchCourses()">🔍 Search</button>
+        <button id="themeToggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+      </div>
+    </header>
+
+    <div id="breadcrumbs" class="breadcrumbs" style="display:none;"></div>
+
+    <div id="year-page" class="page">
+      <h2>Select Year</h2>
+      <div class="grid">
+        <div class="year-card" onclick="showYear(1)">1st Year</div>
+        <div class="year-card" onclick="showYear(2)">2nd Year</div>
+        <div class="year-card" onclick="showYear(3)">3rd Year</div>
+        <div class="year-card" onclick="showYear(4)">4th Year</div>
+      </div>
+    </div>
+
+    <div id="content" class="page" style="display: none;"></div>
+  </div>
+
+  <!-- Resource Contribution / Add Modal -->
+  <div id="contribModalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeContribModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="contribModalTitle">➕ Contribute a Resource</h3>
+        <button class="modal-close" onclick="closeContribModal()">✕</button>
+      </div>
+      <p class="modal-sub" id="contribCourseLabel"></p>
+      <form id="contribForm" onsubmit="submitContribution(event)">
+        <label for="contribTitle">Resource Title</label>
+        <input type="text" id="contribTitle" placeholder="e.g. Pointers Explained Clearly" required>
+        <label for="contribLink">Link (YouTube / Drive / Article)</label>
+        <input type="url" id="contribLink" placeholder="https://..." required>
+        <p id="contribError" class="form-error" style="display:none;"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeContribModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="contribSubmitBtn">Submit Resource</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Chairman: Manage Teachers -->
+  <div id="teachersModalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeTeachersModal()">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>👤 Manage Teachers</h3>
+        <button class="modal-close" onclick="closeTeachersModal()">✕</button>
+      </div>
+
+      <form id="addTeacherForm" onsubmit="handleAddTeacher(event)" class="inline-form">
+        <input type="text" id="newTeacherName" placeholder="Full name" required>
+        <input type="email" id="newTeacherEmail" placeholder="Email" required>
+        <input type="password" id="newTeacherPassword" placeholder="Temp password (6+ chars)" required>
+        <button type="submit" class="btn-primary">Add Teacher</button>
+      </form>
+      <p id="teacherFormError" class="form-error" style="display:none;"></p>
+
+      <div id="teachersList" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <!-- Chairman: Course Assignments -->
+  <div id="assignModalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeAssignModal()">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>🗂️ Course Assignments</h3>
+        <button class="modal-close" onclick="closeAssignModal()">✕</button>
+      </div>
+
+      <form id="assignForm" onsubmit="handleAssign(event)" class="inline-form">
+        <select id="assignCourseSelect" required></select>
+        <select id="assignTeacherSelect" required></select>
+        <button type="submit" class="btn-primary">Assign</button>
+      </form>
+      <p id="assignFormError" class="form-error" style="display:none;"></p>
+
+      <div id="assignmentsList" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <!-- Teacher: Pending Approvals -->
+  <div id="pendingModalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closePendingModal()">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>✅ Pending Approvals</h3>
+        <button class="modal-close" onclick="closePendingModal()">✕</button>
+      </div>
+      <div id="pendingList" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
