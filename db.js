@@ -24,6 +24,14 @@ async function initDb() {
     );
   }
 
+  // Remove leftover courses no longer in courses.json (only if nothing is attached to them)
+  await pool.query(
+    `DELETE FROM courses WHERE code <> ALL($1::text[])
+       AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.course_id = courses.id)
+       AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.course_id = courses.id)`,
+    [courses.map(c => c.code)]
+  );
+
   // Create the first Chairman from env vars if none exists
   const { rows } = await pool.query(`SELECT 1 FROM users WHERE role='chairman' LIMIT 1`);
   if (rows.length === 0) {
